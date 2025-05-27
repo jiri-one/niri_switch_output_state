@@ -20,7 +20,7 @@ logger = logging.getLogger("niri_hdmi_state_switcher")
 
 if not NIRI_SOCKET:
     logger.error("NIRI_SOCKET was not found.")
-    exit()
+    exit(1)
 
 # helper functions
 def send_desktop_notification_and_log(title: str, text: str):
@@ -68,8 +68,9 @@ def check_action_return_values(func):
 
 
 @check_action_return_values
-def connect_to_niri_socket(cmd: str) -> tuple[str, Any]:
+def connect_to_niri_socket(cmd: bytes) -> tuple[str, Any]:
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as socket_client:
+        assert NIRI_SOCKET is not None
         socket_client.connect(NIRI_SOCKET)
         socket_client.send(cmd)
         socket_client.send("\n".encode()) # send new line is demanded
