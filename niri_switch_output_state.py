@@ -5,19 +5,30 @@ from functools import wraps, partial
 import subprocess
 import logging
 from typing import Any
+import argparse
 
 
-# constants
-HDMI_NAME = "HDMI-A-1"
-HDMI_ACTION_ON = json.dumps({"Output":{"output":HDMI_NAME,"action":"On"}}).encode()
-HDMI_ACTION_OFF = json.dumps({"Output":{"output":HDMI_NAME,"action":"Off"}}).encode()
-OUTPUTS = json.dumps("Outputs").encode()
-NIRI_SOCKET = getenv("NIRI_SOCKET")
+DEFAULT_OUTPUT_NAME = "HDMI-A-1"
 
 # logger
 logger = logging.getLogger("niri_hdmi_state_switcher")
 
+# command line argument parser
+parser = argparse.ArgumentParser(
+                    prog='niri_switch_output_state',
+                    description='Turn on the monitor if it is off and opposite',
+                    epilog='This script will not work without Niri WM')
+parser.add_argument('-o', default=DEFAULT_OUTPUT_NAME, required=False, help="Use name output from 'niri msg outputs'")
+args = parser.parse_args()
+OUTPUT_NAME = args.o
 
+# constants
+OUTPUT_ACTION_ON = json.dumps({"Output":{"output":OUTPUT_NAME,"action":"On"}}).encode()
+OUTPUT_ACTION_OFF = json.dumps({"Output":{"output":OUTPUT_NAME,"action":"Off"}}).encode()
+OUTPUTS = json.dumps("Outputs").encode()
+NIRI_SOCKET = getenv("NIRI_SOCKET")
+
+# This script will not work without Niri WM
 if not NIRI_SOCKET:
     logger.error("NIRI_SOCKET was not found.")
     exit(1)
@@ -80,8 +91,9 @@ def connect_to_niri_socket(cmd: bytes) -> tuple[str, Any]:
 
     try:
         result: dict = json.loads(result_bytes)
-    except json.JSONDecodeError as ex:
-        hdmi_switch_error(f"We weren't able to decode data from NIRI socket:\n{ex}")
+    except json.JSONDecodeError:
+        hdmi_switch_error("We weren't able to decode data from NIRI socket, see log for more details.")
+        logger.exception("Decoding data from NIRI socket went wrong.")
         exit(1)
     
     if "Ok" in result:
@@ -102,21 +114,25 @@ def get_hdmi_monitor_state() -> bool | None:
         return None
     else:
         try:
-            current_mode = result_content.get("Outputs").get(HDMI_NAME).get("current_mode")
+            current_mode = result_content.get("Outputs").get(OUTPUT_NAME).get("current_mode")
             if current_mode is not None:
                 return True
             else:
                 return False
         except AttributeError:
+            logger.exception("Some of attributes is probably None")
             return None
 
 
 def main()->None:
     hdmi_turned_on: bool | None = get_hdmi_monitor_state()
     if hdmi_turned_on is True:
-        result_info, result_content = connect_to_niri_socket(HDMI_ACTION_OFF)
+        result_info, result_content = connect_to_niri_socket(OUTPUT_ACTION_OFF)
     elif hdmi_turned_on is False:
-        result_info, result_content = connect_to_niri_socket(HDMI_ACTION_ON)
+        result_info, result_content = connect_to_niri_socket(OUTPUT_ACTION_ON)
+    else:
+        hdmi_switch_error("Some unknown error occurred, see log for more details.")
+        exit(1)
     
 
 if __name__ == "__main__":
