@@ -142,7 +142,7 @@ def main()->None:
     elif hdmi_turned_on is False:
         result_info, result_content = connect_to_niri_socket(OUTPUT_ACTION_ON)
     else:
-        hdmi_switch_error("Some unknown error occurred, see log for more details.")
+        hdmi_switch_error("Some error occurred, see log for more details.")
         exit(1)
     
 
