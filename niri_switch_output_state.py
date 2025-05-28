@@ -114,14 +114,25 @@ def get_hdmi_monitor_state() -> bool | None:
         return None
     else:
         try:
-            current_mode = result_content.get("Outputs").get(OUTPUT_NAME).get("current_mode")
-            if current_mode is not None:
-                return True
-            else:
-                return False
+            outputs = result_content.get("Outputs")
         except AttributeError:
-            logger.exception("Some of attributes is probably None")
+            logger.exception("Return value from NIRI_SOCKET doesn't include 'Outputs' key.")
             return None
+        try:
+            output_name = outputs.get(OUTPUT_NAME)
+        except AttributeError:
+            logger.exception("The output name probably doesn't exists.")
+            return None
+        try:
+            current_mode = output_name.get("current_mode")
+        except AttributeError:
+            logger.exception("It wasn't possible detect current output state.")
+            return None
+            
+        if current_mode is not None:
+            return True
+        else:
+            return False
 
 
 def main()->None:
