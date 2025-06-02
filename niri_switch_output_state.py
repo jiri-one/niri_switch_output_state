@@ -9,7 +9,7 @@ import argparse
 
 # logger
 logger = logging.getLogger(__file__.split("/")[-1].rstrip(".py"))
-# Create a logger andler
+# Create a logger Handler
 console_handler = logging.StreamHandler()
 # link handler to logger
 logger.addHandler(console_handler)
@@ -89,7 +89,6 @@ class OutputSwitcher:
             result_bytes = b""
             while part_bytes := socket_client.recv(1024): # receive 1024 bytes
                 result_bytes += part_bytes
-
         try:
             result: dict = json.loads(result_bytes)
         except json.JSONDecodeError:
