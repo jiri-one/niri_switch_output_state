@@ -135,14 +135,14 @@ class OutputSwitcher:
             else:
                 return False
     
-    def __call__(self) -> str | None:
+    def __call__(self) -> None:
         hdmi_turned_on: bool | None = self.get_hdmi_monitor_state()
         if hdmi_turned_on is True:
             result_info, result_content = self.connect_to_niri_socket(self.OUTPUT_ACTION_OFF)
-            return "Off"
+            logger.info(f"Output {self.output_name} was turned OFF.") 
         elif hdmi_turned_on is False:
             result_info, result_content = self.connect_to_niri_socket(self.OUTPUT_ACTION_ON)
-            return "On"
+            logger.info(f"Output {self.output_name} was turned ON.") 
         else:
             hdmi_switch_error("Some error occurred, see log for more details.")
             exit(1)
@@ -159,8 +159,8 @@ def main()->None:
     OUTPUT_NAME = args.o
     output_switcher = OutputSwitcher(output_name=OUTPUT_NAME)
     # call the output switcher will turn on or off the monitor
-    new_state = output_switcher()
-    logger.info(f"Output {OUTPUT_NAME} was turned {new_state}.")      
+    output_switcher()
+    
 
 
 if __name__ == "__main__":
