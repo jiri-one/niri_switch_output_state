@@ -1,5 +1,5 @@
-import json
 import pytest
+import json
 
 
 # filepath: .test_niri_switch_output_state.py
@@ -35,14 +35,24 @@ class MockSocket:
 def output_switcher():
     return OutputSwitcher()
 
-
-def test_connect_to_niri_socket_success(monkeypatch, output_switcher):
+@pytest.mark.parametrize("action,expected_result_info,raw_result", [
+    (OutputSwitcher.OUTPUT_ACTION_ON, "OK", b'{"Ok": {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}}}'),
+    (OutputSwitcher.OUTPUT_ACTION_OFF, "OK", b'{"Ok": {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}}}'),
+    (OutputSwitcher.OUTPUTS, "OK", b'{"Ok": {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}}}'),
+])
+def test_connect_to_niri_socket_success(
+    action, expected_result_info, raw_result, monkeypatch, output_switcher
+):
     """Test successful connection to NIRI socket with all questions/actions."""
-    for action in [output_switcher.OUTPUT_ACTION_ON, output_switcher.OUTPUT_ACTION_OFF]:
-        monkeypatch.setattr("niri_switch_output_state.socket.socket", MockSocket)
-        result_info, result_content = output_switcher.connect_to_niri_socket(action)
-        assert result_info == "OK"
-        assert "Outputs" in result_content
+    class MockSocketMod(MockSocket):
+        def __init__(self, *args: list, **kwargs: dict):
+            self.return_buffer: dict[str, bytes] = dict(
+                return_value = raw_result,
+            )
+    monkeypatch.setattr("niri_switch_output_state.socket.socket", MockSocketMod)
+    result_info, result_content = output_switcher.connect_to_niri_socket(action)
+    assert result_info == expected_result_info
+    assert result_content ==json.loads(raw_result)[expected_result_info.capitalize()]
 
 
 def test_connect_to_niri_socket_json_error(monkeypatch, output_switcher):
