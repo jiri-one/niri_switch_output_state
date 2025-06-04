@@ -35,11 +35,15 @@ class MockSocket:
 def output_switcher():
     return OutputSwitcher()
 
+
 def test_connect_to_niri_socket_success(monkeypatch, output_switcher):
-    monkeypatch.setattr("niri_switch_output_state.socket.socket", MockSocket)
-    result_info, result_content = output_switcher.connect_to_niri_socket(output_switcher.OUTPUTS)
-    assert result_info == "OK"
-    assert "Outputs" in result_content
+    """Test successful connection to NIRI socket with all questions/actions."""
+    for action in [output_switcher.OUTPUT_ACTION_ON, output_switcher.OUTPUT_ACTION_OFF]:
+        monkeypatch.setattr("niri_switch_output_state.socket.socket", MockSocket)
+        result_info, result_content = output_switcher.connect_to_niri_socket(action)
+        assert result_info == "OK"
+        assert "Outputs" in result_content
+
 
 def test_connect_to_niri_socket_json_error(monkeypatch, output_switcher):
     class MockSocketForError(MockSocket):
@@ -51,7 +55,8 @@ def test_connect_to_niri_socket_json_error(monkeypatch, output_switcher):
        
     with pytest.raises(SystemExit):
         output_switcher.connect_to_niri_socket(output_switcher.OUTPUTS)
-    
+
+
 
 # class TestNiriSwitchOutputState(unittest.TestCase):
 
