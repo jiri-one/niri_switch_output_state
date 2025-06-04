@@ -5,11 +5,13 @@ import json
 # filepath: .test_niri_switch_output_state.py
 from niri_switch_output_state import OutputSwitcher
 
+NIRI_RESULT_OK = b'{"Ok":{"Outputs":{"HDMI-A-1":{"current_mode":"On"}}}}'
+
 
 class MockSocket:
     def __init__(self, *args: list, **kwargs: dict):
         self.return_buffer: dict[str, bytes] = dict(
-            return_value = b'{"Ok": {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}}}',
+            return_value = NIRI_RESULT_OK,
         )
 
     def __enter__(self):
@@ -35,10 +37,23 @@ class MockSocket:
 def output_switcher():
     return OutputSwitcher()
 
-@pytest.mark.parametrize("action,expected_result_info,raw_result", [
-    (OutputSwitcher.OUTPUT_ACTION_ON, "OK", b'{"Ok": {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}}}'),
-    (OutputSwitcher.OUTPUT_ACTION_OFF, "OK", b'{"Ok": {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}}}'),
-    (OutputSwitcher.OUTPUTS, "OK", b'{"Ok": {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}}}'),
+
+@pytest.mark.parametrize(("action, expected_result_info, raw_result"), [
+    pytest.param(
+        OutputSwitcher.OUTPUT_ACTION_ON,
+        "OK",
+        NIRI_RESULT_OK,
+        id="output_action_on"),
+    pytest.param(
+        OutputSwitcher.OUTPUT_ACTION_OFF,
+        "OK",
+        NIRI_RESULT_OK,
+        id="output_action_off"),
+    pytest.param(
+        OutputSwitcher.OUTPUTS,
+        "OK",
+        NIRI_RESULT_OK,
+        id="outputs"),
 ])
 def test_connect_to_niri_socket_success(
     action, expected_result_info, raw_result, monkeypatch, output_switcher
@@ -76,7 +91,7 @@ def test_connect_to_niri_socket_json_error(monkeypatch, output_switcher):
 #         # Mock socket behavior
 #         mock_socket_instance = MagicMock()
 #         mock_socket.return_value.__enter__.return_value = mock_socket_instance
-#         mock_socket_instance.recv.side_effect = [b'{"Ok": {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}}}', b'']
+#         mock_socket_instance.recv.side_effect = [NIRI_RESULT_OK, b'']
         
 #         # Mock JSON decoding
 #         mock_json_loads.return_value = {"Ok": {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}}}
