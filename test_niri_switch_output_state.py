@@ -41,6 +41,16 @@ def test_connect_to_niri_socket_success(monkeypatch, output_switcher):
     assert result_info == "OK"
     assert "Outputs" in result_content
 
+def test_connect_to_niri_socket_json_error(monkeypatch, output_switcher):
+    class MockSocketForError(MockSocket):
+        def __init__(self, *args: list, **kwargs: dict):
+            self.return_buffer: dict[str, bytes] = dict(
+                return_value = b'invalid json',
+            )
+    monkeypatch.setattr("niri_switch_output_state.socket.socket", MockSocketForError)
+       
+    with pytest.raises(SystemExit):
+        output_switcher.connect_to_niri_socket(output_switcher.OUTPUTS)
     
 
 # class TestNiriSwitchOutputState(unittest.TestCase):
