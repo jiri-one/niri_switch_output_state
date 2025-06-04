@@ -1,3 +1,4 @@
+# This script is used to switch HDMI monitor state on or off using Niri WM socket.
 import socket
 from os import getenv
 import json
