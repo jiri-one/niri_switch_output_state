@@ -67,7 +67,7 @@ def test_connect_to_niri_socket_success(
     monkeypatch.setattr("niri_switch_output_state.socket.socket", MockSocketMod)
     result_info, result_content = output_switcher.connect_to_niri_socket(action)
     assert result_info == expected_result_info
-    assert result_content ==json.loads(raw_result)[expected_result_info.capitalize()]
+    assert result_content == list(json.loads(raw_result).values())[0]
 
 
 def test_connect_to_niri_socket_json_error(monkeypatch, output_switcher):
