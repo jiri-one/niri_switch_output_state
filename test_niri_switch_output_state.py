@@ -8,7 +8,27 @@ from niri_switch_output_state import OutputSwitcher
 NIRI_RESULT_OK = b'{"Ok":{"Outputs":{"HDMI-A-1":{"current_mode":"On"}}}}'
 NIRI_RESULT_ERR = b'{"Err":"Some error occurred"}'
 NIRI_RESULT_U_ERR = b'"Some unknown error occurred"'
-
+NIRI_OUTPUT_RESULT = b'''
+{"Ok": {"Outputs": {"HDMI-A-1": {"name": "HDMI-A-1", "make": "Eizo Nanao Corporation", "model": "EV2785", "serial": "0x019FBA10", "physical_size": [
+                    600,
+                    340
+                ], "modes": [
+                    {"width": 3840, "height": 2160, "refresh_rate": 60000, "is_preferred": true
+                    }
+                ], "current_mode": null, "vrr_supported": false, "vrr_enabled": false, "logical": null
+            }, "DP-1": {"name": "DP-1", "make": "PNP(OBX)", "model": "MIRA253", "serial": "BOOX MIRA253", "physical_size": [
+                    560,
+                    320
+                ], "modes": [
+                    {"width": 3200, "height": 1800, "refresh_rate": 29998, "is_preferred": true
+                    }
+                ], "current_mode": 0, "vrr_supported": false, "vrr_enabled": false, "logical": {"x": 1920, "y": 1100, "width": 1600, "height": 900, "scale": 2.0, "transform": "Normal"
+                }
+            }
+        }
+    }
+}
+'''
 
 
 class MockSocket:
@@ -55,7 +75,7 @@ def output_switcher():
     pytest.param(
         OutputSwitcher.OUTPUTS,
         "OK",
-        NIRI_RESULT_OK,
+        NIRI_OUTPUT_RESULT,
         id="outputs"),
     pytest.param(
         OutputSwitcher.OUTPUTS,
@@ -99,87 +119,17 @@ def test_connect_to_niri_socket_json_error(monkeypatch, output_switcher):
         output_switcher.connect_to_niri_socket(output_switcher.OUTPUTS)
 
 
+def test_get_hdmi_monitor_state_success(monkeypatch, output_switcher):
+    """Test successful retrieval of HDMI monitor state."""
+    class MockSocketForState(MockSocket):
+        def __init__(self, *args: list, **kwargs: dict):
+            self.return_buffer: dict[str, bytes] = dict(
+                return_value = NIRI_OUTPUT_RESULT,
+            )
+    monkeypatch.setattr("niri_switch_output_state.socket.socket", MockSocketForState)
+    
+    result_info, result_content = output_switcher.connect_to_niri_socket(output_switcher.OUTPUTS)
+    assert result_info == "OK"
+    assert result_content == json.loads(NIRI_OUTPUT_RESULT)["Ok"]
 
-# class TestNiriSwitchOutputState(unittest.TestCase):
-
-#     @patch("niri_switch_output_state.socket.socket")
-#     @patch("niri_switch_output_state.json.loads")
-#     def test_connect_to_niri_socket_success(self, mock_json_loads, mock_socket):
-#         # Mock socket behavior
-#         mock_socket_instance = MagicMock()
-#         mock_socket.return_value.__enter__.return_value = mock_socket_instance
-#         mock_socket_instance.recv.side_effect = [NIRI_RESULT_OK, b'']
-        
-#         # Mock JSON decoding
-#         mock_json_loads.return_value = {"Ok": {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}}}
-        
-#         result_info, result_content = connect_to_niri_socket(OUTPUTS)
-#         self.assertEqual(result_info, "OK")
-#         self.assertIn("Outputs", result_content)
-
-#     @patch("niri_switch_output_state.socket.socket")
-#     @patch("niri_switch_output_state.json.loads")
-#     def test_connect_to_niri_socket_json_error(self, mock_json_loads, mock_socket):
-#         # Mock socket behavior
-#         mock_socket_instance = MagicMock()
-#         mock_socket.return_value.__enter__.return_value = mock_socket_instance
-#         mock_socket_instance.recv.side_effect = [b'invalid json', b'']
-        
-#         # Mock JSON decoding to raise an error
-#         mock_json_loads.side_effect = json.JSONDecodeError("Expecting value", "", 0)
-        
-#         with self.assertRaises(SystemExit):
-#             connect_to_niri_socket(OUTPUTS)
-
-#     @patch("niri_switch_output_state.connect_to_niri_socket")
-#     def test_get_hdmi_monitor_state_success(self, mock_connect_to_niri_socket):
-#         # Mock successful response from connect_to_niri_socket
-#         mock_connect_to_niri_socket.return_value = ("OK", {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}})
-        
-#         state = get_hdmi_monitor_state()
-#         self.assertTrue(state)
-
-#     @patch("niri_switch_output_state.connect_to_niri_socket")
-#     def test_get_hdmi_monitor_state_failure(self, mock_connect_to_niri_socket):
-#         # Mock failure response from connect_to_niri_socket
-#         mock_connect_to_niri_socket.return_value = ("ERROR", {})
-        
-#         state = get_hdmi_monitor_state()
-#         self.assertIsNone(state)
-
-#     @patch("niri_switch_output_state.connect_to_niri_socket")
-#     @patch("niri_switch_output_state.hdmi_switch_error")
-#     def test_main_hdmi_on(self, mock_hdmi_switch_error, mock_connect_to_niri_socket):
-#         # Mock monitor state as ON
-#         mock_connect_to_niri_socket.side_effect = [
-#             ("OK", {"Outputs": {"HDMI-A-1": {"current_mode": "On"}}}),
-#             ("OK", {})
-#         ]
-        
-#         main()
-#         mock_connect_to_niri_socket.assert_called_with(OUTPUT_ACTION_OFF)
-
-#     @patch("niri_switch_output_state.connect_to_niri_socket")
-#     @patch("niri_switch_output_state.hdmi_switch_error")
-#     def test_main_hdmi_off(self, mock_hdmi_switch_error, mock_connect_to_niri_socket):
-#         # Mock monitor state as OFF
-#         mock_connect_to_niri_socket.side_effect = [
-#             ("OK", {"Outputs": {"HDMI-A-1": {"current_mode": None}}}),
-#             ("OK", {})
-#         ]
-        
-#         main()
-#         mock_connect_to_niri_socket.assert_called_with(OUTPUT_ACTION_ON)
-
-#     @patch("niri_switch_output_state.connect_to_niri_socket")
-#     @patch("niri_switch_output_state.hdmi_switch_error")
-#     def test_main_error(self, mock_hdmi_switch_error, mock_connect_to_niri_socket):
-#         # Mock monitor state retrieval failure
-#         mock_connect_to_niri_socket.return_value = ("ERROR", {})
-        
-#         with self.assertRaises(SystemExit):
-#             main()
-#         mock_hdmi_switch_error.assert_called_once_with("Some error occurred, see log for more details.")
-
-# if __name__ == "__main__":
-#     unittest.main()
+    assert output_switcher.get_hdmi_monitor_state() is False
