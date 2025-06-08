@@ -6,6 +6,9 @@ import json
 from niri_switch_output_state import OutputSwitcher
 
 NIRI_RESULT_OK = b'{"Ok":{"Outputs":{"HDMI-A-1":{"current_mode":"On"}}}}'
+NIRI_RESULT_ERR = b'{"Err":"Some error occurred"}'
+NIRI_RESULT_U_ERR = b'"Some unknown error occurred"'
+
 
 
 class MockSocket:
@@ -54,6 +57,16 @@ def output_switcher():
         "OK",
         NIRI_RESULT_OK,
         id="outputs"),
+    pytest.param(
+        OutputSwitcher.OUTPUTS,
+        "ERROR",
+        NIRI_RESULT_ERR,
+        id="niri_error"),
+    pytest.param(
+        OutputSwitcher.OUTPUTS,
+        "UNKNOWN ERROR",
+        NIRI_RESULT_U_ERR,
+        id="niri_unknown_error"),
 ])
 def test_connect_to_niri_socket_success(
     action, expected_result_info, raw_result, monkeypatch, output_switcher
@@ -67,7 +80,11 @@ def test_connect_to_niri_socket_success(
     monkeypatch.setattr("niri_switch_output_state.socket.socket", MockSocketMod)
     result_info, result_content = output_switcher.connect_to_niri_socket(action)
     assert result_info == expected_result_info
-    assert result_content == list(json.loads(raw_result).values())[0]
+    result = json.loads(raw_result)
+    if isinstance(result, dict):
+        assert result_content == list(result.values())[0]
+    else:
+        assert result_content == result
 
 
 def test_connect_to_niri_socket_json_error(monkeypatch, output_switcher):
