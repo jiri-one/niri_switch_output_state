@@ -8,12 +8,17 @@ import logging
 from typing import Any
 import argparse
 
+
 # logger
 logger = logging.getLogger(__file__.split("/")[-1].rstrip(".py"))
+# create a logger Formatter
+formatter = logging.Formatter(fmt="%(asctime)s %(name)s.%(levelname)s: %(message)s", datefmt="%Y.%m.%d %H:%M:%S")
 # Create a logger Handler
-console_handler = logging.StreamHandler()
+handler = handler = logging.StreamHandler()
+# Set the formatter for the handler
+handler.setFormatter(formatter)
 # link handler to logger
-logger.addHandler(console_handler)
+logger.addHandler(handler)
 # Set the logging level for the handler
 logger.setLevel(logging.INFO)
 
@@ -96,7 +101,7 @@ class OutputSwitcher:
             hdmi_switch_error("We weren't able to decode data from NIRI socket, see log for more details.")
             logger.exception("Decoding data from NIRI socket went wrong.")
             exit(1)
-        
+        # check if result is dict with Ok or Err keys, or some other value
         if "Ok" in result:
             result_content = result.get("Ok")
             result_info = "OK"
@@ -161,7 +166,6 @@ def main()->None:
     # call the output switcher will turn on or off the monitor
     output_switcher()
     
-
 
 if __name__ == "__main__":
     main()
