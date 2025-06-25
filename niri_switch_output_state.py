@@ -93,8 +93,12 @@ class OutputSwitcher:
             socket_client.send(cmd)
             socket_client.send("\n".encode()) # send new line is demanded
             result_bytes = b""
-            while part_bytes := socket_client.recv(1024): # receive 1024 bytes
+            #breakpoint()
+            while True:
+                part_bytes = socket_client.recv(1024) # receive 1024 bytes
                 result_bytes += part_bytes
+                if b'\n' in part_bytes:
+                    break
         try:
             result: dict = json.loads(result_bytes)
         except json.JSONDecodeError:
